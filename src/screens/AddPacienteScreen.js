@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { View, Button, StyleSheet, ScrollView, Text, Image, TouchableOpacity, Alert } from 'react-native';
-import { db, storage } from '../firebase';
+import { db } from '../firebase'; // Asegúrate de que esto apunte a tu configuración de Firebase
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as ImagePicker from 'expo-image-picker';
-import InputField from '../components/InputField';
+import * as FileSystem from 'expo-file-system';
+import InputField from '../components/InputField'; // Asegúrate de que este componente exista
 
-const AddPacienteScreen = ({ navigation }) => {
+const AddPacienteScreen = () => {
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [edad, setEdad] = useState('');
   const [peso, setPeso] = useState('');
   const [image, setImage] = useState(null); // Estado para almacenar la URI de la imagen
-  const [uploading, setUploading] = useState(false);
 
   // Función para seleccionar imagen
   const seleccionarImagen = async () => {
@@ -28,46 +27,63 @@ const AddPacienteScreen = ({ navigation }) => {
     }
   };
 
-  // Función para subir la imagen a Firebase Storage y guardar datos en Firestore
-  const handleAddPaciente = async () => {
-    let imageUrl = '';
+  // Función para guardar la imagen localmente
+  const saveImageLocally = async (uri) => {
+    const fileUri = `${FileSystem.documentDirectory}${nombre}_${apellido}_profile.jpg`; // Cambia el nombre del archivo según el paciente
+    try {
+      await FileSystem.copyAsync({
+        from: uri,
+        to: fileUri,
+      });
+      console.log("Imagen guardada localmente:", fileUri);
+      return fileUri; // Retorna la ruta donde se guardó la imagen
+    } catch (error) {
+      console.error("Error al guardar la imagen localmente:", error);
+      Alert.alert("Error", "No se pudo guardar la imagen.");
+      return null; // Retorna null en caso de error
+    }
+  };
 
+  const handleSave = async () => {
+    if (!nombre || !apellido || !edad || !peso) {
+      Alert.alert("Error", "Por favor, completa todos los campos.");
+      return;
+    }
+
+    let imagePath = null;
     if (image) {
-      setUploading(true);
-      const imageRef = ref(storage, `pacientes/${Date.now()}_profile.jpg`);
-      const response = await fetch(image);
-      const blob = await response.blob();
-
-      await uploadBytes(imageRef, blob)
-        .then(async () => {
-          imageUrl = await getDownloadURL(imageRef);
-          setUploading(false);
-        })
-        .catch((error) => {
-          console.error("Error al subir la imagen: ", error);
-          setUploading(false);
-        });
+      imagePath = await saveImageLocally(image); // Guarda la imagen y obtiene la ruta
+      if (!imagePath) return; // Si hay error al guardar la imagen, salir de la función
     }
 
     // Guardar datos del paciente en Firestore
-    await addDoc(collection(db, "pacientes"), {
-      nombrePaciente: nombre,
-      apellidoPaciente: apellido,
-      edad: Number(edad),
-      peso: Number(peso),
-      fotoPerfil: imageUrl,
-      fechaRegistro: Timestamp.now()
-    });
-
-    Alert.alert("Éxito", "Paciente guardado exitosamente");
-    navigation.navigate('PacienteList');
+    try {
+      await addDoc(collection(db, "pacientes"), {
+        nombrePaciente: nombre,
+        apellidoPaciente: apellido,
+        edad: Number(edad),
+        peso: Number(peso),
+        fotoPerfil: imagePath || '', // Guarda la ruta de la imagen o un string vacío si no hay imagen
+        fechaRegistro: Timestamp.now()
+      });
+      Alert.alert("Éxito", "Paciente guardado exitosamente");
+      // Resetear campos después de guardar
+      setNombre('');
+      setApellido('');
+      setEdad('');
+      setPeso('');
+      setImage(null);
+    } catch (error) {
+      console.error("Error al guardar los datos del paciente: ", error);
+      Alert.alert("Error", "No se pudo guardar el paciente. Por favor, intenta de nuevo.");
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Agregar Nuevo Paciente</Text>
       <TouchableOpacity onPress={seleccionarImagen} style={styles.imageContainer}>
-        <Image source={require('../../assets/iconos/flecha.png')} style={styles.imageIcon} />
+        <Text>Seleccionar Imagen</Text>
       </TouchableOpacity>
       {/* Vista previa de la imagen seleccionada */}
       {image && <Image source={{ uri: image }} style={styles.imagePreview} />}
@@ -78,7 +94,7 @@ const AddPacienteScreen = ({ navigation }) => {
       <InputField label="Peso (kg)" value={peso} onChangeText={setPeso} keyboardType="numeric" />
 
       <View style={styles.buttonContainer}>
-        <Button title={uploading ? "Guardando..." : "Guardar Paciente"} onPress={handleAddPaciente} color="#4CAF50" disabled={uploading} />
+        <Button title="Guardar" onPress={handleSave} color="#4CAF50" />
       </View>
     </ScrollView>
   );
@@ -107,10 +123,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderColor: '#344e41',
     borderWidth: 1,
-  },
-  imageIcon: {
-    width: 50,
-    height: 50,
   },
   imagePreview: {
     width: '100%',
