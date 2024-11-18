@@ -8,21 +8,21 @@ const HomeScreen = ({ navigation }) => {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('AddPaciente')}
+        onPress={() => navigation.navigate('Agregarpaciente')}
       >
         <Text style={styles.buttonText}>Añadir Paciente</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('PacienteList')}
+        onPress={() => navigation.navigate('ListaDepaciente')}
       >
         <Text style={styles.buttonText}>Lista de Pacientes</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate('Statistics')}
+        onPress={() => navigation.navigate('Graficos')}
       >
         <Text style={styles.buttonText}>Estadísticas</Text>
       </TouchableOpacity>
