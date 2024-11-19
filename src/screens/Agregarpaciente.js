@@ -1,76 +1,59 @@
 import React, { useState } from 'react';
-import { View, Button, StyleSheet, ScrollView, Text, Image, TouchableOpacity, Alert } from 'react-native';
-import { db } from '../firebase'; // Configuración de Firebase
-import { collection, addDoc, Timestamp } from "firebase/firestore"; // Métodos de Firestore
-import * as ImagePicker from 'expo-image-picker'; // Selector de imágenes de Expo
-import * as FileSystem from 'expo-file-system'; // Sistema de archivos de Expo
-import Diseñoscajita from '../components/Diseñoscajita'; // Componente personalizado para campos de entrada
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  Image,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { db } from '../firebase';
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import Diseñoscajita from '../components/Diseñoscajita';
+import LottieView from 'lottie-react-native';
 
-/**
- * Agregarpaciente
- * 
- * Componente que permite agregar un nuevo paciente a la base de datos de Firestore.
- * Incluye campos de entrada para nombre, apellido, edad, peso y la opción de seleccionar una imagen.
- */
 const Agregarpaciente = () => {
-  // Estados para almacenar los valores de los campos y la imagen seleccionada
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [edad, setEdad] = useState('');
   const [peso, setPeso] = useState('');
-  const [image, setImage] = useState(null); // URI de la imagen seleccionada
+  const [image, setImage] = useState(null);
+  const [successAnimation, setSuccessAnimation] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * seleccionarImagen
-   * 
-   * Abre la galería de imágenes del dispositivo y permite al usuario seleccionar una imagen.
-   * La URI de la imagen seleccionada se almacena en el estado `image`.
-   */
   const seleccionarImagen = async () => {
     let resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Permite solo imágenes
-      allowsEditing: true, // Permite recortar la imagen
-      aspect: [4, 3], // Relación de aspecto
-      quality: 1, // Calidad máxima
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
     });
 
     if (!resultado.canceled && resultado.assets.length > 0) {
-      setImage(resultado.assets[0].uri); // Guarda la URI de la imagen seleccionada
+      setImage(resultado.assets[0].uri);
     }
   };
 
-  /**
-   * saveImageLocally
-   * 
-   * Guarda la imagen seleccionada en el sistema de archivos local.
-   * 
-   * @param {string} uri - URI de la imagen seleccionada.
-   * @returns {string|null} Ruta donde se guardó la imagen o `null` en caso de error.
-   */
   const saveImageLocally = async (uri) => {
-    const fileUri = `${FileSystem.documentDirectory}${nombre}_${apellido}_profile.jpg`; // Ruta del archivo
+    const fileUri = `${FileSystem.documentDirectory}${nombre}_${apellido}_profile.jpg`;
     try {
       await FileSystem.copyAsync({
-        from: uri, // Origen de la imagen
-        to: fileUri, // Destino del archivo
+        from: uri,
+        to: fileUri,
       });
-      console.log("Imagen guardada localmente:", fileUri);
-      return fileUri; // Retorna la ruta del archivo
+      return fileUri;
     } catch (error) {
       console.error("Error al guardar la imagen localmente:", error);
       Alert.alert("Error", "No se pudo guardar la imagen.");
-      return null; // Retorna `null` si ocurre un error
+      return null;
     }
   };
 
-  /**
-   * handleSave
-   * 
-   * Valida los campos de entrada y guarda los datos del paciente en Firestore.
-   * Incluye la opción de guardar la imagen localmente antes de subir los datos.
-   */
   const handleSave = async () => {
-    // Validación de campos obligatorios
     if (!nombre || !apellido || !edad || !peso) {
       Alert.alert("Error", "Por favor, completa todos los campos.");
       return;
@@ -78,101 +61,121 @@ const Agregarpaciente = () => {
 
     let imagePath = null;
     if (image) {
-      imagePath = await saveImageLocally(image); // Guarda la imagen localmente
-      if (!imagePath) return; // Si falla, detiene la operación
+      imagePath = await saveImageLocally(image);
+      if (!imagePath) return;
     }
 
+    setIsLoading(true);
     try {
-      // Agrega un nuevo documento a la colección "pacientes"
       await addDoc(collection(db, "pacientes"), {
         nombrePaciente: nombre,
         apellidoPaciente: apellido,
-        edad: Number(edad), // Convierte edad a número
-        peso: Number(peso), // Convierte peso a número
-        fotoPerfil: imagePath || '', // Guarda la ruta de la imagen o un string vacío
-        fechaRegistro: Timestamp.now(), // Marca la fecha de registro
+        edad: Number(edad),
+        peso: Number(peso),
+        fotoPerfil: imagePath || '',
+        fechaRegistro: Timestamp.now(),
       });
 
-      Alert.alert("Éxito", "Paciente guardado exitosamente");
-
-      // Resetea los campos después de guardar
-      setNombre('');
-      setApellido('');
-      setEdad('');
-      setPeso('');
-      setImage(null);
+      setSuccessAnimation(true);
+      setTimeout(() => {
+        setSuccessAnimation(false);
+        setIsLoading(false);
+        setNombre('');
+        setApellido('');
+        setEdad('');
+        setPeso('');
+        setImage(null);
+      }, 3000);
     } catch (error) {
       console.error("Error al guardar los datos del paciente: ", error);
       Alert.alert("Error", "No se pudo guardar el paciente. Por favor, intenta de nuevo.");
+      setIsLoading(false);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Agregar Nuevo Paciente</Text>
+      <Text style={styles.title}>Registrar Paciente</Text>
 
-      {/* Selector de Imagen */}
-      <TouchableOpacity onPress={seleccionarImagen} style={styles.imageContainer}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.imagePreview} />
-        ) : (
-          <Text style={styles.imageText}>Seleccionar Imagen</Text>
-        )}
-      </TouchableOpacity>
+      {successAnimation && (
+        <View style={styles.animationContainer}>
+          <LottieView
+             source={require('../../assets/animacion/Animation - 1731980497412.json')}
+            autoPlay
+            loop={false}
+            style={styles.animation}
+          />
+          <Text style={styles.successText}>¡Paciente registrado con éxito!</Text>
+        </View>
+      )}
 
-      {/* Campos de Entrada */}
-      <Diseñoscajita label="Nombre" value={nombre} onChangeText={setNombre} />
-      <Diseñoscajita label="Apellido" value={apellido} onChangeText={setApellido} />
-      <Diseñoscajita label="Edad" value={edad} onChangeText={setEdad} keyboardType="numeric" />
-      <Diseñoscajita label="Peso (kg)" value={peso} onChangeText={setPeso} keyboardType="numeric" />
+      {!successAnimation && (
+        <>
+          <TouchableOpacity onPress={seleccionarImagen} style={styles.imageContainer}>
+            {image ? (
+              <Image source={{ uri: image }} style={styles.imagePreview} />
+            ) : (
+              <Text style={styles.imageText}>Seleccionar Imagen</Text>
+            )}
+          </TouchableOpacity>
 
-      {/* Botón Guardar */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Guardar</Text>
-        </TouchableOpacity>
-      </View>
+          <Diseñoscajita label="Nombre" value={nombre} onChangeText={setNombre} />
+          <Diseñoscajita label="Apellido" value={apellido} onChangeText={setApellido} />
+          <Diseñoscajita label="Edad" value={edad} onChangeText={setEdad} keyboardType="numeric" />
+          <Diseñoscajita label="Peso (kg)" value={peso} onChangeText={setPeso} keyboardType="numeric" />
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 };
 
-/**
- * Estilos del Componente
- * 
- * Define el diseño y estilo visual de los elementos.
- */
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#edf1f7', // Fondo suave y profesional
+    backgroundColor: '#f2faff',
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#344e5c',
+    color: '#4a90e2',
     marginBottom: 20,
     textAlign: 'center',
-    textTransform: 'uppercase',
   },
   imageContainer: {
-    width: 120,
-    height: 120,
+    width: 130,
+    height: 130,
     alignSelf: 'center',
     marginBottom: 20,
-    backgroundColor: '#e8ecef',
+    backgroundColor: '#eaf5fc',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 60, // Forma circular
-    borderColor: '#4CAF50',
+    borderRadius: 65,
+    borderColor: '#4a90e2',
     borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   imagePreview: {
     width: '100%',
     height: '100%',
-    borderRadius: 60, // Imagen circular
+    borderRadius: 65,
   },
   imageText: {
-    color: '#6b7688',
+    color: '#4a90e2',
     fontSize: 14,
     textAlign: 'center',
   },
@@ -180,21 +183,35 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4a90e2',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 5, // Sombra en Android
+    elevation: 8,
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+  },
+  animationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  animation: {
+    width: 200,
+    height: 200,
+  },
+  successText: {
+    color: '#4a90e2',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 

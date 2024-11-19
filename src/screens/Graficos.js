@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions, Alert, Button } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, Alert, TouchableOpacity } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { db } from '../firebase';
 import { collection, getDocs } from 'firebase/firestore';
@@ -46,9 +46,9 @@ const Graficos = () => {
   }, []);
 
   const pieData = [
-    { name: 'Menores de 30', population: dataEdad.filter(edad => edad < 30).length, color: '#4CAF50', legendFontColor: '#344e41', legendFontSize: 14 },
-    { name: 'Entre 30 y 50', population: dataEdad.filter(edad => edad >= 30 && edad <= 50).length, color: '#FFC107', legendFontColor: '#344e41', legendFontSize: 14 },
-    { name: 'Mayores de 50', population: dataEdad.filter(edad => edad > 50).length, color: '#FF5722', legendFontColor: '#344e41', legendFontSize: 14 },
+    { name: 'Menores de 30', population: dataEdad.filter(edad => edad < 30).length, color: '#4a90e2', legendFontColor: '#4a90e2', legendFontSize: 14 },
+    { name: 'Entre 30 y 50', population: dataEdad.filter(edad => edad >= 30 && edad <= 50).length, color: '#FFC107', legendFontColor: '#FFC107', legendFontSize: 14 },
+    { name: 'Mayores de 50', population: dataEdad.filter(edad => edad > 50).length, color: '#e74c3c', legendFontColor: '#e74c3c', legendFontSize: 14 },
   ];
 
   const handleDataPointClick = (data) => {
@@ -164,9 +164,9 @@ const Graficos = () => {
             />
           </View>
 
-          <View style={styles.buttonContainer}>
-            <Button title="Generar y Compartir PDF" onPress={generatePDF} color="#4CAF50" />
-          </View>
+          <TouchableOpacity style={styles.pdfButton} onPress={generatePDF}>
+            <Text style={styles.pdfButtonText}>Generar y Compartir PDF</Text>
+          </TouchableOpacity>
         </>
       )}
     </ScrollView>
@@ -183,13 +183,13 @@ const chartConfig = {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#edf1f7',
+    backgroundColor: '#f0faff',
     alignItems: 'center',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#344e41',
+    color: '#4a90e2',
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -197,18 +197,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f4f4f4',
+    backgroundColor: '#eaf5fc',
     padding: 20,
     borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   statLabel: {
     fontSize: 16,
-    color: '#6b7688',
+    color: '#4a90e2',
   },
   statValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#344e41',
   },
   chartTitle: {
     fontSize: 18,
@@ -217,15 +221,29 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  buttonContainer: {
-    marginTop: 20,
-    width: '100%',
-  },
   loadingText: {
     fontSize: 18,
     color: '#888',
     marginTop: 20,
     textAlign: 'center',
+  },
+  pdfButton: {
+    backgroundColor: '#4a90e2',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  pdfButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

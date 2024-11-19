@@ -1,129 +1,123 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { db } from '../firebase'; // Importa la configuración de Firebase
-import { doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore"; // Métodos de Firestore para trabajar con documentos
-import * as ImagePicker from 'expo-image-picker'; // Librería de Expo para seleccionar imágenes
+import { db } from '../firebase';
+import { doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import * as ImagePicker from 'expo-image-picker';
+import LottieView from 'lottie-react-native'; // Animaciones
 
-/**
- * DetallePacienteScreen
- * 
- * Este componente muestra los detalles de un paciente específico, permitiendo al usuario:
- * - Ver la información del paciente.
- * - Editar los datos del paciente.
- * - Cambiar la imagen de perfil del paciente.
- * - Eliminar al paciente de la base de datos.
- * 
- * @param {Object} route - Parámetros de navegación.
- * @param {Object} navigation - Objeto de navegación proporcionado por React Navigation.
- */
 const DetallePacienteScreen = ({ route, navigation }) => {
-  const { pacienteId } = route.params; // Obtiene el ID del paciente desde los parámetros de navegación
-  const [paciente, setPaciente] = useState(null); // Estado para almacenar los datos del paciente
-  const [isEditing, setIsEditing] = useState(false); // Estado para manejar el modo de edición
+  const { pacienteId } = route.params;
+  const [paciente, setPaciente] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Estados para los campos editables
   const [nombre, setNombre] = useState('');
   const [apellido, setApellido] = useState('');
   const [edad, setEdad] = useState('');
   const [peso, setPeso] = useState('');
   const [fotoPerfil, setFotoPerfil] = useState('');
 
-  /**
-   * useEffect
-   * 
-   * Ejecuta la función `fetchPaciente` al cargar el componente para obtener los datos
-   * del paciente desde Firestore usando el ID proporcionado.
-   */
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     const fetchPaciente = async () => {
-      const docRef = doc(db, "pacientes", pacienteId); // Referencia al documento en Firestore
-      const docSnap = await getDoc(docRef); // Obtiene el documento
+      const docRef = doc(db, "pacientes", pacienteId);
+      const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const data = docSnap.data(); // Datos del documento
+        const data = docSnap.data();
         setPaciente(data);
         setNombre(data.nombrePaciente);
         setApellido(data.apellidoPaciente);
-        setEdad(data.edad.toString()); // Convierte la edad a string para el TextInput
-        setPeso(data.peso.toString()); // Convierte el peso a string para el TextInput
+        setEdad(data.edad.toString());
+        setPeso(data.peso.toString());
         setFotoPerfil(data.fotoPerfil);
       }
     };
     fetchPaciente();
   }, [pacienteId]);
 
-  /**
-   * handleDeletePaciente
-   * 
-   * Elimina el paciente de Firestore y regresa a la lista de pacientes.
-   */
   const handleDeletePaciente = async () => {
     try {
-      await deleteDoc(doc(db, "pacientes", pacienteId)); // Elimina el documento
-      Alert.alert("Éxito", "Paciente eliminado exitosamente");
-      navigation.navigate('ListaDepaciente'); // Regresa a la lista de pacientes
+      setIsDeleting(true); // Inicia animación
+      await deleteDoc(doc(db, "pacientes", pacienteId));
+      setTimeout(() => {
+        setIsDeleting(false); // Termina animación
+        Alert.alert("Éxito", "Paciente eliminado exitosamente");
+        navigation.navigate('ListaDepaciente');
+      }, 3000);
     } catch (error) {
       console.error("Error al eliminar el paciente: ", error);
       Alert.alert("Error", "No se pudo eliminar el paciente. Intenta de nuevo.");
+      setIsDeleting(false);
     }
   };
 
-  /**
-   * handleEditToggle
-   * 
-   * Activa o desactiva el modo de edición.
-   */
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
   };
 
-  /**
-   * handleUpdatePaciente
-   * 
-   * Actualiza los datos del paciente en Firestore.
-   */
   const handleUpdatePaciente = async () => {
     try {
-      const docRef = doc(db, "pacientes", pacienteId); // Referencia al documento
+      setIsSaving(true); // Inicia animación
+      const docRef = doc(db, "pacientes", pacienteId);
       await updateDoc(docRef, {
         nombrePaciente: nombre,
         apellidoPaciente: apellido,
-        edad: Number(edad), // Convierte edad a número
-        peso: Number(peso), // Convierte peso a número
-        fotoPerfil: fotoPerfil, // URL de la imagen
+        edad: Number(edad),
+        peso: Number(peso),
+        fotoPerfil: fotoPerfil,
       });
-      Alert.alert("Éxito", "Datos del paciente actualizados exitosamente");
-      setIsEditing(false); // Desactiva el modo de edición
+      setTimeout(() => {
+        setIsSaving(false); // Termina animación
+        Alert.alert("Éxito", "Datos del paciente actualizados exitosamente");
+        setIsEditing(false);
+      }, 3000);
     } catch (error) {
       console.error("Error al actualizar los datos del paciente: ", error);
       Alert.alert("Error", "No se pudieron actualizar los datos. Intenta de nuevo.");
+      setIsSaving(false);
     }
   };
 
-  /**
-   * seleccionarImagen
-   * 
-   * Permite al usuario seleccionar una imagen desde la galería y actualiza la imagen de perfil.
-   */
   const seleccionarImagen = async () => {
     let resultado = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Permite solo imágenes
-      allowsEditing: true, // Permite recortar la imagen
-      aspect: [4, 3], // Relación de aspecto
-      quality: 1, // Calidad máxima
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
     });
 
     if (!resultado.canceled && resultado.assets.length > 0) {
-      const selectedImageUri = resultado.assets[0].uri; // URI de la imagen seleccionada
-      setFotoPerfil(selectedImageUri); // Actualiza la URI de la imagen
-      setIsEditing(true); // Activa el modo de edición
+      const selectedImageUri = resultado.assets[0].uri;
+      setFotoPerfil(selectedImageUri);
+      setIsEditing(true);
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {paciente ? (
+      {isSaving ? (
+        <View style={styles.animationContainer}>
+          <LottieView
+            source={require('../../assets/animacion/Animation - 1731981360472.json')}
+            autoPlay
+            loop={false}
+            style={styles.animation}
+          />
+          <Text style={styles.statusText}>Guardando cambios...</Text>
+        </View>
+      ) : isDeleting ? (
+        <View style={styles.animationContainer}>
+          <LottieView
+            source={require('../../assets/animacion/Animation - 1731981786736.json')}
+            autoPlay
+            loop={false}
+            style={styles.animation}
+          />
+          <Text style={styles.statusText}>Eliminando paciente...</Text>
+        </View>
+      ) : paciente ? (
         <>
-          {/* Muestra la imagen de perfil del paciente */}
           {fotoPerfil ? (
             <Image source={{ uri: fotoPerfil }} style={styles.imagePreview} />
           ) : (
@@ -135,39 +129,15 @@ const DetallePacienteScreen = ({ route, navigation }) => {
             <Text style={styles.imageButtonText}>Cambiar Imagen</Text>
           </TouchableOpacity>
 
-          {/* Campos de edición */}
           <Text style={styles.label}>Nombre Completo</Text>
-          <TextInput 
-            style={styles.input}
-            value={nombre}
-            onChangeText={setNombre}
-            editable={isEditing}
-          />
+          <TextInput style={styles.input} value={nombre} onChangeText={setNombre} editable={isEditing} />
           <Text style={styles.label}>Apellido</Text>
-          <TextInput 
-            style={styles.input}
-            value={apellido}
-            onChangeText={setApellido}
-            editable={isEditing}
-          />
+          <TextInput style={styles.input} value={apellido} onChangeText={setApellido} editable={isEditing} />
           <Text style={styles.label}>Edad</Text>
-          <TextInput 
-            style={styles.input}
-            value={edad}
-            onChangeText={setEdad}
-            keyboardType="numeric"
-            editable={isEditing}
-          />
+          <TextInput style={styles.input} value={edad} onChangeText={setEdad} keyboardType="numeric" editable={isEditing} />
           <Text style={styles.label}>Peso (kg)</Text>
-          <TextInput 
-            style={styles.input}
-            value={peso}
-            onChangeText={setPeso}
-            keyboardType="numeric"
-            editable={isEditing}
-          />
+          <TextInput style={styles.input} value={peso} onChangeText={setPeso} keyboardType="numeric" editable={isEditing} />
 
-          {/* Botones */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.editButton} onPress={isEditing ? handleUpdatePaciente : handleEditToggle}>
               <Text style={styles.buttonText}>{isEditing ? 'Guardar Cambios' : 'Editar'}</Text>
@@ -184,16 +154,15 @@ const DetallePacienteScreen = ({ route, navigation }) => {
   );
 };
 
-// Estilos del componente
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: '#edf1f7',
+    backgroundColor: '#f0faff',
   },
   label: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#344e5c',
+    color: '#4a90e2',
     marginTop: 20,
   },
   input: {
@@ -210,12 +179,12 @@ const styles = StyleSheet.create({
     height: 200,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e8ecef',
+    backgroundColor: '#eaf5fc',
     borderRadius: 10,
     marginBottom: 15,
   },
   noImageText: {
-    color: '#6b7688',
+    color: '#4a90e2',
     fontSize: 14,
   },
   imagePreview: {
@@ -225,7 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   imageButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#4a90e2',
     padding: 10,
     borderRadius: 10,
     alignItems: 'center',
@@ -264,6 +233,21 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'center',
     marginTop: 20,
+  },
+  animationContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 50,
+  },
+  animation: {
+    width: 150,
+    height: 150,
+  },
+  statusText: {
+    fontSize: 16,
+    color: '#4a90e2',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 

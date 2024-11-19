@@ -1,99 +1,111 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Text } from 'react-native';
-import { db } from '../firebase'; // Importación de la configuración de Firebase
-import { collection, getDocs } from "firebase/firestore"; // Métodos de Firestore para obtener datos
-import PacienteCard from '../components/PacienteCard'; // Componente que muestra las tarjetas de pacientes
+import { View, FlatList, StyleSheet, Text, TextInput } from 'react-native';
+import { db } from '../firebase';
+import { collection, getDocs } from "firebase/firestore";
+import PacienteCard from '../components/PacienteCard';
 
-/**
- * ListaDepaciente
- * 
- * Este componente muestra una lista de pacientes obtenida desde Firestore.
- * Incluye una funcionalidad para refrescar automáticamente la lista cuando la pantalla vuelve a enfocarse.
- * 
- * @param {Object} props.navigation - Objeto de navegación proporcionado por React Navigation.
- */
 const ListaDepaciente = ({ navigation }) => {
-  const [pacientes, setPacientes] = useState([]); // Estado para almacenar los datos de los pacientes
+  const [pacientes, setPacientes] = useState([]); // Datos completos
+  const [filteredPacientes, setFilteredPacientes] = useState([]); // Datos filtrados
+  const [searchQuery, setSearchQuery] = useState(''); // Texto del buscador
 
-  /**
-   * fetchPacientes
-   * 
-   * Función que obtiene la lista de pacientes desde la colección "pacientes" en Firestore
-   * y actualiza el estado con los datos obtenidos.
-   */
   const fetchPacientes = async () => {
     try {
-      // Obtiene todos los documentos de la colección "pacientes"
       const querySnapshot = await getDocs(collection(db, "pacientes"));
-      // Mapea los documentos para extraer su ID y datos
-      setPacientes(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const pacientesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPacientes(pacientesData);
+      setFilteredPacientes(pacientesData); // Inicialmente, todos los datos
     } catch (error) {
       console.error("Error al obtener los pacientes: ", error);
     }
   };
 
-  /**
-   * useEffect
-   * 
-   * Llama a `fetchPacientes` al montar el componente para obtener la lista inicial.
-   * Agrega un listener para refrescar la lista cuando la pantalla se enfoca.
-   */
   useEffect(() => {
-    fetchPacientes(); // Llama a la función para obtener los pacientes
-
-    // Agrega un listener para ejecutar fetchPacientes cuando la pantalla se enfoca
+    fetchPacientes();
     const unsubscribe = navigation.addListener('focus', fetchPacientes);
-
-    // Limpia el listener al desmontar el componente
     return unsubscribe;
   }, [navigation]);
 
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredPacientes(pacientes); // Restaurar todos los pacientes si no hay texto
+    } else {
+      const filtered = pacientes.filter((paciente) =>
+        paciente.nombrePaciente.toLowerCase().includes(query.toLowerCase()) ||
+        paciente.apellidoPaciente.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredPacientes(filtered); // Actualizar datos filtrados
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Encabezado de la lista */}
       <Text style={styles.headerText}>Gestión de Pacientes</Text>
+
+      {/* Campo de búsqueda */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Buscar por nombre o apellido"
+        value={searchQuery}
+        onChangeText={handleSearch}
+        clearButtonMode="always"
+      />
 
       {/* Lista de pacientes */}
       <FlatList
-        data={pacientes} // Datos de los pacientes
-        keyExtractor={(item) => item.id} // Clave única para cada elemento
+        data={filteredPacientes} // Mostrar los pacientes filtrados
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <PacienteCard
-            nombre={item.nombrePaciente} // Propiedad del nombre del paciente
-            apellido={item.apellidoPaciente} // Propiedad del apellido del paciente
-            imagen={item.fotoPerfil} // Propiedad de la imagen del paciente
-            // Navega a la pantalla DetallePacienteScreen pasando el ID del paciente
+            nombre={item.nombrePaciente}
+            apellido={item.apellidoPaciente}
+            imagen={item.fotoPerfil}
             onPress={() => navigation.navigate('DetallePacienteScreen', { pacienteId: item.id })}
           />
         )}
-        contentContainerStyle={styles.listContainer} // Estilo del contenedor de la lista
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={<Text style={styles.emptyText}>No se encontraron pacientes</Text>}
       />
     </View>
   );
 };
 
-/**
- * Estilos del componente
- * 
- * Define el diseño y estilo de los elementos de la pantalla.
- */
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Ocupa todo el espacio disponible
-    backgroundColor: '#edf1f7', // Color de fondo suave y profesional
-    paddingHorizontal: 15, // Espaciado horizontal
+    flex: 1,
+    backgroundColor: '#f0faff',
+    paddingHorizontal: 15,
   },
   headerText: {
-    fontSize: 28, // Tamaño del texto del encabezado
-    fontWeight: 'bold', // Peso de la fuente
-    color: '#344e5c', // Color del texto
-    marginVertical: 20, // Espaciado superior e inferior
-    textAlign: 'center', // Alineación centrada
-    textTransform: 'uppercase', // Transformación de texto en mayúsculas
-    letterSpacing: 1, // Espaciado entre letras
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#4a90e2',
+    marginVertical: 20,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    textShadowColor: '#d4e4f4',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  searchInput: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#4a90e2',
+    fontSize: 16,
   },
   listContainer: {
-    paddingBottom: 20, // Espaciado inferior para la lista
+    paddingBottom: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#a1a1a1',
+    marginTop: 20,
   },
 });
 

@@ -1,63 +1,111 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 const HomeScreen = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Bienvenido al Policlínico</Text>
+    <ImageBackground
+      source={require('../../assets/Hospital.jpg')}
+      style={styles.background}
+    >
+      <View style={styles.overlay} />
+      <View style={styles.container}>
+        <Text style={styles.title}>Bienvenido al Policlínico</Text>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('Agregarpaciente')}
-      >
-        <Text style={styles.buttonText}>Añadir Paciente</Text>
-      </TouchableOpacity>
+        <View style={styles.menuContainer}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Agregarpaciente')}
+          >
+            <View style={styles.iconContainer}>
+              <Icon name="person-add-outline" size={40} color="#00BFFF" />
+            </View>
+            <Text style={styles.menuText}>Añadir Paciente</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('ListaDepaciente')}
-      >
-        <Text style={styles.buttonText}>Lista de Pacientes</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('ListaDepaciente')}
+          >
+            <View style={styles.iconContainer}>
+              <Icon name="list-circle-outline" size={40} color="#00BFFF" />
+            </View>
+            <Text style={styles.menuText}>Lista de Pacientes</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('Graficos')}
-      >
-        <Text style={styles.buttonText}>Estadísticas</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('Graficos')}
+          >
+            <View style={styles.iconContainer}>
+              <Icon name="stats-chart-outline" size={40} color="#00BFFF" />
+            </View>
+            <Text style={styles.menuText}>Estadísticas</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: 'cover',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Sombra oscura para mejor contraste
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: 'bold',
-    color: '#344e41',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 10,
-    marginBottom: 20,
-    width: '80%',
-    alignItems: 'center',
-  },
-  buttonText: {
     color: '#FFFFFF',
+    marginBottom: 40,
+    textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 5,
+  },
+  menuContainer: {
+    width: '100%',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#87CEEB', // Azul celeste
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    width: '90%',
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  iconContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  menuText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
 
